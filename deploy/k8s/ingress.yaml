@@ -7,7 +7,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: share.saegim.clab.one
+    - host: share.saegim.one
       http:
         paths:
           - path: /
@@ -19,5 +19,5 @@ spec:
                   number: 8080
   tls:
     - hosts:
-        - share.saegim.clab.one
+        - share.saegim.one
       secretName: share-renderer-tls
