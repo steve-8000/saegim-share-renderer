@@ -2,7 +2,7 @@ import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import { cardTemplate, type ShareRecord } from "./card.ts";
 
-const PB_URL = process.env.POCKETBASE_URL ?? "https://api.saegim.clab.one";
+const PB_URL = process.env.POCKETBASE_URL ?? "http://pocketbase.saegim.svc.cluster.local:8090";
 const PORT = Number(process.env.PORT ?? 8080);
 
 const fontData = await Bun.file(new URL("../assets/Pretendard-Regular.otf", import.meta.url)).arrayBuffer();
@@ -21,6 +21,28 @@ async function fetchShare(id: string): Promise<ShareRecord | null> {
   if (!res.ok) return null;
   const body: unknown = await res.json();
   return isShareRecord(body) ? body : null;
+}
+
+/** Escapes text for safe interpolation into HTML (P1: stored XSS — `title`
+ * is attacker-controllable since `shares.createRule` is public). */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** The ingress terminates TLS and forwards plain HTTP internally, so
+ * `url.origin` reports http:// even though the public page is https-only
+ * (P2: broken/mixed-content og:image). Trust X-Forwarded-Proto/-Host when
+ * present, otherwise assume https (this service is never served over plain
+ * HTTP in production). */
+function publicOrigin(req: Request, url: URL): string {
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("x-forwarded-host") ?? url.host;
+  return `${proto}://${host}`;
 }
 
 async function renderCardPng(record: ShareRecord): Promise<Buffer> {
@@ -65,12 +87,13 @@ Bun.serve({
       const id = pageMatch[1];
       const record = await fetchShare(id);
       if (!record) return new Response("not found", { status: 404 });
-      const cardUrl = `${url.origin}/s/${id}/card.png`;
+      const cardUrl = `${publicOrigin(req, url)}/s/${id}/card.png`;
+      const safeTitle = escapeHtml(record.title);
       const html = `<!doctype html><html><head>
 <meta property="og:image" content="${cardUrl}" />
-<meta property="og:title" content="${record.title}" />
-<title>${record.title} · Saegim</title>
-</head><body><img src="${cardUrl}" alt="${record.title}" /></body></html>`;
+<meta property="og:title" content="${safeTitle}" />
+<title>${safeTitle} · Saegim</title>
+</head><body><img src="${cardUrl}" alt="${safeTitle}" /></body></html>`;
       return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
