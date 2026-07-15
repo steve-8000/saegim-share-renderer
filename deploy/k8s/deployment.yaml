@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: share-renderer
+  labels:
+    app: share-renderer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: share-renderer
+  template:
+    metadata:
+      labels:
+        app: share-renderer
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: share-renderer
+          image: ghcr.io/steve-8000/saegim-share-renderer:latest
+          imagePullPolicy: Always
+          env:
+            - name: POCKETBASE_URL
+              value: "http://pocketbase.saegim.svc.cluster.local:8090"
+            - name: PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 30

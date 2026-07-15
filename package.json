@@ -1,0 +1,13 @@
+{
+  "name": "saegim-share-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/server.ts"
+  },
+  "dependencies": {
+    "satori": "^0.12.2",
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}
