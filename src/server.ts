@@ -5,7 +5,9 @@ import { cardTemplate, type ShareRecord } from "./card.ts";
 const PB_URL = process.env.POCKETBASE_URL ?? "http://pocketbase.saegim.svc.cluster.local:8090";
 const PORT = Number(process.env.PORT ?? 8080);
 
-const fontData = await Bun.file(new URL("../assets/Pretendard-Regular.otf", import.meta.url)).arrayBuffer();
+const fontRegular = await Bun.file(new URL("../assets/Pretendard-Regular.otf", import.meta.url)).arrayBuffer();
+const fontSemiBold = await Bun.file(new URL("../assets/Pretendard-SemiBold.otf", import.meta.url)).arrayBuffer();
+const fontBold = await Bun.file(new URL("../assets/Pretendard-Bold.otf", import.meta.url)).arrayBuffer();
 
 function isShareRecord(value: unknown): value is ShareRecord {
   if (!value || typeof value !== "object") return false;
@@ -52,7 +54,11 @@ async function renderCardPng(record: ShareRecord): Promise<Buffer> {
   const svg = await satori(cardTemplate(record) as unknown as Parameters<typeof satori>[0], {
     width: 1200,
     height: 630,
-    fonts: [{ name: "Pretendard", data: fontData, weight: 400, style: "normal" }],
+    fonts: [
+      { name: "Pretendard", data: fontRegular, weight: 400, style: "normal" },
+      { name: "Pretendard", data: fontSemiBold, weight: 600, style: "normal" },
+      { name: "Pretendard", data: fontBold, weight: 700, style: "normal" },
+    ],
   });
   const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } });
   return resvg.render().asPng();
@@ -89,11 +95,15 @@ Bun.serve({
       if (!record) return new Response("not found", { status: 404 });
       const cardUrl = `${publicOrigin(req, url)}/s/${id}/card.png`;
       const safeTitle = escapeHtml(record.title);
+      const safeSubtitle = record.subtitle ? escapeHtml(record.subtitle) : null;
       const html = `<!doctype html><html><head>
 <meta property="og:image" content="${cardUrl}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta property="og:title" content="${safeTitle}" />
+${safeSubtitle ? `<meta property="og:description" content="${safeSubtitle}" />\n` : ""}<meta name="twitter:card" content="summary_large_image" />
 <title>${safeTitle} · Saegim</title>
-</head><body><img src="${cardUrl}" alt="${safeTitle}" /></body></html>`;
+</head><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#F6F7F9"><img src="${cardUrl}" alt="${safeTitle}" style="max-width:100%;height:auto" /></body></html>`;
       return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
