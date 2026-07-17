@@ -13,6 +13,8 @@
 export interface SharePayload {
   dateText?: string;
   timeText?: string;
+  /// V11: 기계가독 시작시각(ISO8601 UTC) — .ics 생성·만료 판정용.
+  startAtISO?: string;
   line?: string;
   moments?: string[];
   weather?: {

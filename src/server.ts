@@ -1,6 +1,7 @@
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import { cardTemplate, type ShareRecord } from "./card.ts";
+import { buildICS, buildSharePage } from "./page.ts";
 
 const PB_URL = process.env.POCKETBASE_URL ?? "http://pocketbase.saegim.svc.cluster.local:8090";
 const PORT = Number(process.env.PORT ?? 8080);
@@ -25,16 +26,6 @@ async function fetchShare(id: string): Promise<ShareRecord | null> {
   return isShareRecord(body) ? body : null;
 }
 
-/** Escapes text for safe interpolation into HTML (P1: stored XSS — `title`
- * is attacker-controllable since `shares.createRule` is public). */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 /** The ingress terminates TLS and forwards plain HTTP internally, so
  * `url.origin` reports http:// even though the public page is https-only
@@ -73,6 +64,22 @@ Bun.serve({
       return new Response("ok", { status: 200 });
     }
 
+    const icsMatch = url.pathname.match(/^\/s\/([^/]+)\/event\.ics$/);
+    if (icsMatch) {
+      const id = icsMatch[1];
+      const record = await fetchShare(id);
+      const ics = record ? buildICS(record, id) : null;
+      if (!ics) return new Response("not found", { status: 404 });
+      return new Response(ics, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/calendar; charset=utf-8",
+          "Content-Disposition": `attachment; filename="saegim-${id}.ics"`,
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+
     const cardMatch = url.pathname.match(/^\/s\/([^/]+)\/card\.png$/);
     if (cardMatch) {
       const id = cardMatch[1];
@@ -94,16 +101,7 @@ Bun.serve({
       const record = await fetchShare(id);
       if (!record) return new Response("not found", { status: 404 });
       const cardUrl = `${publicOrigin(req, url)}/s/${id}/card.png`;
-      const safeTitle = escapeHtml(record.title);
-      const safeSubtitle = record.subtitle ? escapeHtml(record.subtitle) : null;
-      const html = `<!doctype html><html><head>
-<meta property="og:image" content="${cardUrl}" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-<meta property="og:title" content="${safeTitle}" />
-${safeSubtitle ? `<meta property="og:description" content="${safeSubtitle}" />\n` : ""}<meta name="twitter:card" content="summary_large_image" />
-<title>${safeTitle} · Saegim</title>
-</head><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#F6F7F9"><img src="${cardUrl}" alt="${safeTitle}" style="max-width:100%;height:auto" /></body></html>`;
+      const html = buildSharePage(record, id, cardUrl, new Date());
       return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
