@@ -323,7 +323,7 @@ function itemCard(record: ShareRecord): SatoriNode {
           weatherPanel,
         ].filter(Boolean) as SatoriNode[]
       ),
-      textNode("새김으로 만든 약속 카드 · saegim.one", {
+      textNode("새김으로 만든 약속 카드 · justsend.cloud", {
         fontSize: 20,
         color: tokens.fgFaint,
         marginTop: 28,

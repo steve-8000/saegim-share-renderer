@@ -6,7 +6,7 @@
 // - 만료 플레이스홀더 (시작 +24h 경과 → "지난 약속" 배너, ics 숨김)
 import type { ShareRecord } from "./card.ts";
 
-const APP_URL = process.env.APP_STORE_URL ?? "https://saegim.one";
+const APP_URL = process.env.APP_STORE_URL ?? "https://justsend.cloud";
 const EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 function startAt(record: ShareRecord): Date | null {
@@ -46,7 +46,7 @@ export function buildICS(record: ShareRecord, id: string): string | null {
     "VERSION:2.0",
     "PRODID:-//Saegim//share//KO",
     "BEGIN:VEVENT",
-    `UID:saegim-${id}@saegim.one`,
+    `UID:saegim-${id}@justsend.cloud`,
     `DTSTAMP:${icsUTC(new Date())}`,
     `DTSTART:${icsUTC(start)}`,
     `DTEND:${icsUTC(end)}`,

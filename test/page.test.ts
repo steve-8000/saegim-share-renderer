@@ -23,7 +23,7 @@ describe("buildICS (s1)", () => {
     // default duration 1h
     expect(ics).toContain("DTEND:20260720T070000Z");
     expect(ics).toContain("SUMMARY:민지랑 커피");
-    expect(ics).toContain("UID:saegim-abc123@saegim.one");
+    expect(ics).toContain("UID:saegim-abc123@justsend.cloud");
     expect(ics).toContain("END:VCALENDAR");
     // RFC 5545: CRLF
     for (const line of ics.split("\r\n")) {
@@ -64,7 +64,7 @@ describe("isExpired (s2)", () => {
 });
 
 describe("buildSharePage (s2)", () => {
-  const cardUrl = "https://share.saegim.one/s/abc/card.png";
+  const cardUrl = "https://share.justsend.cloud/s/abc/card.png";
 
   test("has ics button, maps link by name only, install CTA", () => {
     const html = buildSharePage(base, "abc", cardUrl, new Date("2026-07-19T00:00:00Z"));
@@ -74,7 +74,7 @@ describe("buildSharePage (s2)", () => {
     expect(html).toContain(encodeURIComponent("성수 카페"));
     expect(html).not.toMatch(/ll=|lat|lng|37\.\d|126\.\d/);
     // install CTA always present
-    expect(html).toContain("saegim.one");
+    expect(html).toContain("justsend.cloud");
     expect(html).toContain("새김");
     // OG preserved
     expect(html).toContain('property="og:image"');
